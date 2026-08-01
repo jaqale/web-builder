@@ -4,6 +4,14 @@ import './styles.css'
 
 type Stage = 'Briefing' | 'UX' | 'Design' | 'Build'
 type Screen = 'landing' | 'signin' | 'workspace'
+type Briefing = {
+  goal: string
+  audience: string
+  offer: string
+  action: string
+  tone: string
+  reference: string
+}
 type Project = {
   id: string
   name: string
@@ -11,6 +19,7 @@ type Project = {
   stage: Stage
   updatedAt: string
   brand: { name: string; primary: string; tone: string }
+  briefing?: Briefing
 }
 
 const stages: Stage[] = ['Briefing', 'UX', 'Design', 'Build']
@@ -52,7 +61,7 @@ function App() {
     <Sidebar />
     <section className="page">
       {selected
-        ? <ProjectDetail project={selected} onBack={() => setSelectedId(null)} onUpdate={(brand) => setProjects(projects.map(p => p.id === selected.id ? { ...p, brand, updatedAt: 'Gerade eben' } : p))} />
+        ? <ProjectDetail project={selected} onBack={() => setSelectedId(null)} onUpdate={(brand) => setProjects(projects.map(p => p.id === selected.id ? { ...p, brand, updatedAt: 'Gerade eben' } : p))} onSaveBriefing={(briefing) => setProjects(projects.map(p => p.id === selected.id ? { ...p, briefing, updatedAt: 'Gerade eben' } : p))} />
         : <Dashboard projects={projects} onCreate={() => setShowCreate(true)} onOpen={setSelectedId} />}
     </section>
     {showCreate && <CreateDialog onClose={() => setShowCreate(false)} onCreate={createProject} />}
@@ -107,18 +116,42 @@ function ProjectCard({ project, onOpen }: { project: Project; onOpen: () => void
   return <button className="project-card" onClick={onOpen}><div className="card-visual"><div className="visual-nav"><i /><i /><i /></div><div className="visual-title">{project.brand.name === 'Noch nicht festgelegt' ? 'A' : project.brand.name.slice(0, 1)}</div><div className="visual-blob" /><div className="visual-line one" /><div className="visual-line two" /><div className="visual-button" /></div><div className="project-meta"><div><span className="stage-pill"><b>{stageIndex + 1}</b> {project.stage}</span><h3>{project.name}</h3><p>{project.purpose}</p></div><span className="arrow">↗</span></div><footer><span>Aktualisiert {project.updatedAt}</span><div className="mini-avatars"><i>AJ</i></div></footer></button>
 }
 
-function ProjectDetail({ project, onBack, onUpdate }: { project: Project; onBack: () => void; onUpdate: (brand: Project['brand']) => void }) {
+function ProjectDetail({ project, onBack, onUpdate, onSaveBriefing }: { project: Project; onBack: () => void; onUpdate: (brand: Project['brand']) => void; onSaveBriefing: (briefing: Briefing) => void }) {
   const [tab, setTab] = useState<'overview' | 'brand' | 'team'>('overview')
   const [brand, setBrand] = useState(project.brand)
+  const [briefingOpen, setBriefingOpen] = useState(false)
   const stageIndex = stages.indexOf(project.stage)
   return <><header className="topbar"><button className="back" onClick={onBack}>← Alle Projekte</button><div className="topbar-right"><span className="saving">● Gespeichert</span><button className="bell">♧</button></div></header>
     <div className="detail-wrap"><section className="project-header"><div><span className="eyebrow">PROJEKT</span><h1>{project.name}</h1><p>{project.purpose} · Erstellt heute</p></div><button className="secondary-button">Teilen <span>↗</span></button></section>
       <div className="stagebar">{stages.map((stage, index) => <div className={index <= stageIndex ? 'done' : ''} key={stage}><span>{index < stageIndex ? '✓' : index + 1}</span><strong>{stage}</strong></div>)}</div>
       <div className="tabs"><button className={tab === 'overview' ? 'selected' : ''} onClick={() => setTab('overview')}>Übersicht</button><button className={tab === 'brand' ? 'selected' : ''} onClick={() => setTab('brand')}>Markenprofil</button><button className={tab === 'team' ? 'selected' : ''} onClick={() => setTab('team')}>Team</button></div>
-      {tab === 'overview' && <section className="next-step-panel"><div className="step-number">01</div><div><span className="eyebrow">AKTUELLE PHASE · BRIEFING</span><h2>Eine starke Website beginnt mit Klarheit.</h2><p>In wenigen Minuten definierst du Ziel, Zielgruppe und Botschaft. Daraus wird ein konkretes Briefing, das du vor dem UX-Schritt freigibst.</p><button className="primary disabled">Briefing in R1 verfügbar <span>→</span></button></div><div className="checklist"><strong>Bereit für den Start</strong><span>✓ Projekt angelegt</span><span>✓ Markenrahmen definiert</span><span>○ Briefing formulieren</span></div></section>}
+      {tab === 'overview' && (project.briefing ? <ConceptResult project={project} briefing={project.briefing} onEdit={() => setBriefingOpen(true)} /> : <section className="next-step-panel"><div className="step-number">01</div><div><span className="eyebrow">AKTUELLE PHASE · BRIEFING</span><h2>Eine starke Website beginnt mit Klarheit.</h2><p>In wenigen Minuten definierst du Ziel, Zielgruppe und Botschaft. Atelier übersetzt deine Antworten in ein freigabefähiges Website-Konzept.</p><button className="primary" onClick={() => setBriefingOpen(true)}>Briefing starten <span>→</span></button></div><div className="checklist"><strong>Bereit für den Start</strong><span>✓ Projekt angelegt</span><span>✓ Markenrahmen definiert</span><span>○ Briefing formulieren</span></div></section>)}
       {tab === 'brand' && <section className="brand-layout"><article className="form-panel"><span className="eyebrow">MARKENPROFIL</span><h2>Der visuelle Rahmen.</h2><p>Diese Werte steuern später die Designrichtung und alle erzeugten Komponenten.</p><label>Markenname<input value={brand.name} onChange={e => setBrand({ ...brand, name: e.target.value })} /></label><label>Primärfarbe<input value={brand.primary} onChange={e => setBrand({ ...brand, primary: e.target.value })} /></label><label>Markenton<input value={brand.tone} onChange={e => setBrand({ ...brand, tone: e.target.value })} /></label><button className="primary" onClick={() => onUpdate(brand)}>Änderungen speichern</button></article><aside className="brand-preview"><span>LIVE PREVIEW</span><div style={{ background: brand.primary }}><b>{brand.name || 'Marke'}</b><em>Eine klare Botschaft<br />für deine Zielgruppe.</em><i>Mehr erfahren →</i></div></aside></section>}
       {tab === 'team' && <section className="team-panel"><span className="eyebrow">TEAM & FREIGABE</span><h2>Wer arbeitet an diesem Projekt?</h2><div className="team-row"><div className="avatar">AJ</div><div><strong>Alexander Jaquet</strong><small>Administrator · volle Rechte</small></div><span>Eigentümer</span></div><div className="empty-invite"><span>＋</span><div><strong>Teammitglied einladen</strong><small>Editoren und Reviewer werden in R0.3 ergänzt.</small></div></div></section>}
-    </div></>
+    </div>{briefingOpen && <BriefingFlow project={project} initial={project.briefing} onClose={() => setBriefingOpen(false)} onComplete={(briefing) => { onSaveBriefing(briefing); setBriefingOpen(false) }} />}</>
+}
+
+function ConceptResult({ project, briefing, onEdit }: { project: Project; briefing: Briefing; onEdit: () => void }) {
+  const offer = briefing.offer || project.name
+  const audience = briefing.audience || 'deine Zielgruppe'
+  return <section className="concept-result"><div className="concept-top"><div><span className="eyebrow">BRIEFING · KONZEPTBEREIT</span><h2>Deine strategische Grundlage steht.</h2><p>Prüfe das Konzept. Nach der Freigabe wird daraus im UX Studio Seitenstruktur und Wireframes.</p></div><button className="secondary-button" onClick={onEdit}>Briefing bearbeiten</button></div><div className="concept-grid"><article className="concept-lead"><span className="concept-label">KERNBOTSCHAFT</span><h3>{offer} – klar gedacht für {audience}.</h3><p>{briefing.goal || 'Die Website vermittelt den Nutzen schnell und führt Besucher gezielt zur nächsten Aktion.'}</p></article><article><span className="concept-label">EMPFOHLENE SEITEN</span><ul><li>Startseite <em>Orientierung & Kernbotschaft</em></li><li>Leistung / Angebot <em>Nutzen, Details & Vertrauen</em></li><li>Über uns <em>Marke, Haltung & Glaubwürdigkeit</em></li><li>Kontakt <em>{briefing.action || 'Nächster Schritt'}</em></li></ul></article><article><span className="concept-label">GESTALTUNGSLEITPLANKEN</span><p><b>Ton:</b> {briefing.tone || project.brand.tone}</p><p><b>Marke:</b> {project.brand.name}</p><p><b>Referenz:</b> {briefing.reference || 'Wird im Design Studio konkretisiert.'}</p></article></div><div className="concept-footer"><span>✓ Briefing abgeschlossen</span><button className="primary disabled">Weiter zum UX Studio <span>→</span></button></div></section>
+}
+
+const briefingSteps: Array<{ key: keyof Briefing; eyebrow: string; title: string; description: string; label: string; placeholder: string }> = [
+  { key: 'goal', eyebrow: 'SCHRITT 1 VON 6', title: 'Was soll diese Website erreichen?', description: 'Beschreibe den wichtigsten Erfolg. Zum Beispiel informieren, Vertrauen aufbauen, Anfragen gewinnen oder ein neues Angebot vorstellen.', label: 'Ziel der Website', placeholder: 'z. B. Unser neues Produkt verständlich erklären und qualifizierte Anfragen gewinnen.' },
+  { key: 'audience', eyebrow: 'SCHRITT 2 VON 6', title: 'Wen möchtest du erreichen?', description: 'Je klarer wir den Besucher verstehen, desto präziser werden Struktur, Sprache und Design.', label: 'Primäre Zielgruppe', placeholder: 'z. B. Gesundheitsbewusste Menschen ab 40, die eine verlässliche Lösung suchen.' },
+  { key: 'offer', eyebrow: 'SCHRITT 3 VON 6', title: 'Was steht im Mittelpunkt?', description: 'Benenne Angebot, Produkt, Thema oder Initiative, um die es auf der Website geht.', label: 'Angebot oder Kernthema', placeholder: 'z. B. Die neue Produktlinie für erholsamen Schlaf.' },
+  { key: 'action', eyebrow: 'SCHRITT 4 VON 6', title: 'Was soll danach passieren?', description: 'Der gewünschte nächste Schritt gibt der Website eine klare Richtung.', label: 'Wichtigste Aktion', placeholder: 'z. B. Produkt kennenlernen, Termin vereinbaren oder Newsletter abonnieren.' },
+  { key: 'tone', eyebrow: 'SCHRITT 5 VON 6', title: 'Wie soll sich die Marke anfühlen?', description: 'Beschreibe Tonalität und Wirkung in wenigen Worten.', label: 'Gewünschte Wirkung', placeholder: 'z. B. Modern, beruhigend, wissenschaftlich fundiert und nahbar.' },
+  { key: 'reference', eyebrow: 'SCHRITT 6 VON 6', title: 'Gibt es etwas, das dir gefällt?', description: 'Eine Website, ein Design oder ein kurzer Hinweis reicht. Das hilft später im Design Studio.', label: 'Referenz oder Hinweis', placeholder: 'z. B. Viel Weißraum, starke Bildwelten und eine sehr klare Navigation.' }
+]
+
+function BriefingFlow({ project, initial, onClose, onComplete }: { project: Project; initial?: Briefing; onClose: () => void; onComplete: (briefing: Briefing) => void }) {
+  const [step, setStep] = useState(0)
+  const [form, setForm] = useState<Briefing>(initial ?? { goal: '', audience: '', offer: '', action: '', tone: project.brand.tone, reference: '' })
+  const current = briefingSteps[step]
+  const ready = form[current.key].trim().length > 1
+  return <div className="briefing-flow"><header className="briefing-header"><button className="briefing-logo" onClick={onClose}><span className="logo-mark">A</span> atelier</button><div className="briefing-project"><span>{project.name}</span><b>Briefing</b></div><button className="exit-briefing" onClick={onClose}>Entwurf schließen ×</button></header><div className="briefing-progress"><i style={{ width: `${((step + 1) / briefingSteps.length) * 100}%` }} /></div><main className="briefing-main"><aside className="briefing-aside"><span className="eyebrow">DEIN PROZESS</span>{briefingSteps.map((item, index) => <div className={index === step ? 'current' : index < step ? 'complete' : ''} key={item.key}><b>{index < step ? '✓' : String(index + 1).padStart(2, '0')}</b><span>{item.title}</span></div>)}</aside><section className="briefing-question"><span className="eyebrow">{current.eyebrow}</span><h1>{current.title}</h1><p>{current.description}</p><label>{current.label}<textarea value={form[current.key]} onChange={event => setForm({ ...form, [current.key]: event.target.value })} placeholder={current.placeholder} autoFocus /></label><div className="briefing-actions"><button className="ghost" onClick={() => step === 0 ? onClose() : setStep(step - 1)}>{step === 0 ? 'Abbrechen' : '← Zurück'}</button><button className="primary" disabled={!ready} onClick={() => step === briefingSteps.length - 1 ? onComplete(form) : setStep(step + 1)}>{step === briefingSteps.length - 1 ? 'Konzept erstellen' : 'Weiter'} <span>→</span></button></div></section></main></div>
 }
 
 function CreateDialog({ onClose, onCreate }: { onClose: () => void; onCreate: (name: string, purpose: string) => void }) {
