@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './styles.css'
 
 type Stage = 'Briefing' | 'UX' | 'Design' | 'Build'
+type Screen = 'landing' | 'signin' | 'workspace'
 type Project = {
   id: string
   name: string
@@ -22,6 +23,7 @@ const initialProject: Project = {
 function Icon({ children }: { children: string }) { return <span className="icon" aria-hidden="true">{children}</span> }
 
 function App() {
+  const [screen, setScreen] = useState<Screen>(() => localStorage.getItem('atelier-signed-in') ? 'workspace' : 'landing')
   const [projects, setProjects] = useState<Project[]>(() => {
     const stored = localStorage.getItem('atelier-projects')
     return stored ? JSON.parse(stored) : [initialProject]
@@ -42,6 +44,10 @@ function App() {
     setShowCreate(false)
   }
 
+  const signIn = () => { localStorage.setItem('atelier-signed-in', 'true'); setScreen('workspace') }
+  if (screen === 'landing') return <Landing onSignIn={() => setScreen('signin')} />
+  if (screen === 'signin') return <SignIn onBack={() => setScreen('landing')} onComplete={signIn} />
+
   return <main className="app-shell">
     <Sidebar />
     <section className="page">
@@ -51,6 +57,22 @@ function App() {
     </section>
     {showCreate && <CreateDialog onClose={() => setShowCreate(false)} onCreate={createProject} />}
   </main>
+}
+
+function Landing({ onSignIn }: { onSignIn: () => void }) {
+  return <main className="landing">
+    <header className="landing-nav"><div className="landing-logo"><span className="logo-mark">A</span> atelier</div><nav><a>So funktioniert's</a><a>Vorlagen</a></nav><button className="sign-in-link" onClick={onSignIn}>Anmelden <span>→</span></button></header>
+    <section className="landing-hero"><div className="hero-copy"><span className="eyebrow">WEBSITE CREATION STUDIO</span><h1>Websites, die<br /><span>wirken.</span></h1><p>Atelier macht aus einer Idee eine Website, die klar kommuniziert, gut aussieht und überall funktioniert.</p><div className="hero-actions"><button className="primary large" onClick={onSignIn}>Neue Website erstellen <span>→</span></button><button className="text-action" onClick={onSignIn}>Projekt öffnen</button></div><div className="trust-line"><i>✓</i> Erst Konzept und Design. Dann der Code.</div></div><div className="hero-preview"><div className="preview-toolbar"><span /><span /><span /><b>atelier / preview</b><em>●</em></div><div className="preview-page"><div className="preview-brand">nord.</div><div className="preview-menu">Home&nbsp;&nbsp; About&nbsp;&nbsp; Journal <button>Contact</button></div><div className="preview-content"><small>THE NEW STANDARD</small><h2>Made for<br />the moments<br />that matter.</h2><p>A distinctive approach to modern wellness.</p><button>Discover more <span>→</span></button></div><div className="preview-orb" /></div><span className="floating-label">Live Website Preview</span></div>
+    </section>
+    <section className="start-section"><div className="section-intro"><span className="eyebrow">DEIN EINSTIEG</span><h2>Womit möchtest du beginnen?</h2><p>Du bringst den Anlass mit. Atelier bringt Struktur, Designqualität und einen klaren Weg zum Ergebnis.</p></div><div className="start-options"><button onClick={onSignIn}><span className="option-icon">✦</span><strong>Mit einer Idee starten</strong><p>Von Ziel und Zielgruppe zu einem durchdachten Website-Konzept.</p><i>Loslegen →</i></button><button onClick={onSignIn}><span className="option-icon">▧</span><strong>Aus einer Vorlage starten</strong><p>Ein hochwertiger Ausgangspunkt, den du zu deiner Marke machst.</p><i>Vorlagen entdecken →</i></button><button onClick={onSignIn}><span className="option-icon">↗</span><strong>Etwas Bestehendes verbessern</strong><p>Struktur, Design oder Inhalte einer vorhandenen Seite weiterentwickeln.</p><i>Website verbessern →</i></button></div></section>
+    <section className="promise"><div><span className="eyebrow">DER ATELIER-WEG</span><h2>Gute Websites entstehen<br />nicht durch Zufall.</h2></div><div className="promise-steps"><span><b>01</b> Klar denken <small>Ziel, Nutzer und Botschaft</small></span><span><b>02</b> Sicher gestalten <small>UX, Design und Marke</small></span><span><b>03</b> Stark umsetzen <small>Responsive Website und Launch</small></span></div></section>
+    <footer className="landing-footer"><div className="landing-logo"><span className="logo-mark">A</span> atelier</div><span>Ein interner Engelhard PoC</span><button onClick={onSignIn}>Zum Workspace →</button></footer>
+  </main>
+}
+
+function SignIn({ onBack, onComplete }: { onBack: () => void; onComplete: () => void }) {
+  const [email, setEmail] = useState('')
+  return <main className="signin-screen"><button className="signin-logo" onClick={onBack}><span className="logo-mark">A</span> atelier</button><section className="signin-card"><button className="back-to-site" onClick={onBack}>← Zurück</button><span className="eyebrow">WORKSPACE</span><h1>Willkommen zurück.</h1><p>Melde dich an, um an deinen Website-Projekten weiterzuarbeiten.</p><form onSubmit={event => { event.preventDefault(); if (email.trim()) onComplete() }}><label>E-Mail-Adresse<input type="email" value={email} onChange={event => setEmail(event.target.value)} placeholder="name@unternehmen.de" autoFocus required /></label><button className="primary" type="submit">Weiter <span>→</span></button></form><div className="signin-divider"><span>oder</span></div><button className="sso-button" onClick={onComplete}><b>◇</b> Mit Unternehmens-Login fortfahren</button><small className="poc-note">Interner PoC · Die Anmeldung wird derzeit nur lokal simuliert.</small></section><aside className="signin-aside"><span className="eyebrow">ATELIER</span><h2>Die richtige Idee verdient eine richtig gute Website.</h2><p>Von der ersten Skizze bis zum letzten Detail – an einem Ort.</p><div className="aside-orbit"><i /><i /><b>✦</b></div></aside></main>
 }
 
 function Sidebar() {
