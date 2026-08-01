@@ -13,6 +13,13 @@ type Briefing = {
   tone: string
   reference: string
 }
+type Release = {
+  version: string
+  eyebrow: string
+  title: string
+  description: string
+  changes: string[]
+}
 type Project = {
   id: string
   name: string
@@ -41,8 +48,17 @@ function App() {
   })
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [showCreate, setShowCreate] = useState(false)
+  const [release, setRelease] = useState<Release | null>(null)
 
   useEffect(() => localStorage.setItem('atelier-projects', JSON.stringify(projects)), [projects])
+  useEffect(() => {
+    fetch(`${import.meta.env.BASE_URL}release.json?at=${Date.now()}`, { cache: 'no-store' })
+      .then(response => response.ok ? response.json() : null)
+      .then((latest: Release | null) => {
+        if (latest && localStorage.getItem('atelier-release-seen') !== latest.version) setRelease(latest)
+      })
+      .catch(() => undefined)
+  }, [])
   const selected = projects.find((item) => item.id === selectedId)
 
   const createProject = (name: string, purpose: string) => {
@@ -56,10 +72,11 @@ function App() {
   }
 
   const signIn = () => { localStorage.setItem('atelier-signed-in', 'true'); setScreen('workspace') }
-  if (screen === 'landing') return <Landing onSignIn={() => setScreen('signin')} />
-  if (screen === 'signin') return <SignIn onBack={() => setScreen('landing')} onComplete={signIn} />
+  const releaseNotice = release && <ReleaseNotice release={release} onDismiss={() => { localStorage.setItem('atelier-release-seen', release.version); setRelease(null) }} />
+  if (screen === 'landing') return <>{<Landing onSignIn={() => setScreen('signin')} />}{releaseNotice}</>
+  if (screen === 'signin') return <>{<SignIn onBack={() => setScreen('landing')} onComplete={signIn} />}{releaseNotice}</>
 
-  return <main className="app-shell">
+  return <><main className="app-shell">
     <Sidebar />
     <section className="page">
       {selected
@@ -68,7 +85,11 @@ function App() {
     </section>
     {showCreate && <CreateDialog onClose={() => setShowCreate(false)} onCreate={createProject} />}
     <MobileDock onHome={() => setSelectedId(null)} onCreate={() => setShowCreate(true)} />
-  </main>
+  </main>{releaseNotice}</>
+}
+
+function ReleaseNotice({ release, onDismiss }: { release: Release; onDismiss: () => void }) {
+  return <aside className="release-notice" role="status" aria-live="polite"><button className="release-close" onClick={onDismiss} aria-label="Update schließen">×</button><span className="release-spark">✦</span><span className="eyebrow">{release.eyebrow}</span><h2>{release.title}</h2><p>{release.description}</p><ul>{release.changes.map(change => <li key={change}>✓ <span>{change}</span></li>)}</ul><div className="release-actions"><button className="ghost" onClick={onDismiss}>Später</button><button className="primary" onClick={() => { onDismiss(); window.location.reload() }}>Neu laden <span>↻</span></button></div></aside>
 }
 
 function Landing({ onSignIn }: { onSignIn: () => void }) {
